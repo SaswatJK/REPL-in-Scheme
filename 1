@@ -73,18 +73,8 @@
 (define (rightParen? ch)
   (eq? ch right-paren-token))
 
-(define (readlist list-so-far)
-  (let ((currToken (readChar)))
-    (cond ((rightParam? currToken)
-          (reverse list-so-far))
-          ((leftParam? (readList list-so-far)))
-          (else
-            (readList (cons currToken list-so-far))))))
-
-
-
 (define (simpleRead)
-  (let ((nextToken (ReadChar)))
+  (let ((nextToken (ReadChar))
     (cond ((leftParen? nextToken)
            (read-list '()))
           (else
@@ -92,9 +82,9 @@
 
 (define (REPL)
   (display "rEPL| ")
-  (let ((expr (simpleRead)))
-    (cond ((or (eq? expr 'halt)  ;eq checks if it referes to the same object, rather than checking the list itself.
-                (eq? expr 'exit))
+  (let ((expr (read)))
+    (cond ((eq? expr 'halt)  ;eq checks if it referes to the same object, rather than checking the list itself.
+           (newline)
            (display "Exiting the repl"))
           (#t
           (write (eval (expr))
@@ -107,7 +97,8 @@
 (newline)
 (display (expr 5))
 (newline)
-(REPL)
+;(REPL)
+(ReadChar)
 (newline)
 (newline)
 (newline)
