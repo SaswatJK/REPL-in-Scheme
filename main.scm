@@ -41,10 +41,12 @@
   (define (read-num-helper num-so-far)
     (let ((next-digit (peek-char)))
       (if (char-numeric? next-digit)
-        (read-num-helper (cons next-digit num-so-far)))
-        (reverse num-so-far)))
+        (read-num-helper (cons (read-char) num-so-far))
+        (reverse num-so-far))))
   (string->number ;We just create a number out of the string.
     (list->string (read-num-helper (list currentNum)))))
+
+;;Tryna write the iterative version of each function.
 
 (define left-paren-token
   (list '*left-paranthesis*)) ;;Quote stops eval, treats it as a literal.
@@ -63,7 +65,7 @@
            ((char-alphabetic? currentChar)
             (read-word currentChar))
            ((char-numeric? currentChar)
-            (read-number currentChar))
+            (read-num currentChar))
            (else
              (error "Cannot handle this character token")))))
 
@@ -73,41 +75,62 @@
 (define (rightParen? ch)
   (eq? ch right-paren-token))
 
-(define (readlist list-so-far)
-  (let ((currToken (readChar)))
-    (cond ((rightParam? currToken)
+(define (readList list-so-far)
+  (let ((currToken (ReadChar)))
+    (cond ((rightParen? currToken)
           (reverse list-so-far))
-          ((leftParam? (readList list-so-far)))
+          ((leftParen? currToken)
+           (readList (cons (readList '()) list-so-far)))
           (else
             (readList (cons currToken list-so-far))))))
-
-
 
 (define (simpleRead)
   (let ((nextToken (ReadChar)))
     (cond ((leftParen? nextToken)
-           (read-list '()))
+           (readList '()))
           (else
             nextToken))))
 
-(define (REPL)
+(define (REPL evaltr)
   (display "rEPL| ")
   (let ((expr (simpleRead)))
     (cond ((or (eq? expr 'halt)  ;eq checks if it referes to the same object, rather than checking the list itself.
                 (eq? expr 'exit))
            (display "Exiting the repl"))
-          (#t
-          (write (eval (expr))
+          (else
+          (write (evaltr expr))
           (newline)
-          (REPL)) ;Tail recursion.
-          ))))
+          (REPL evaltr)) ;Tail recursion.
+          )))
 
+(define (math-eval-combo expr)
+  (let ((operator-name (car expr))
+        (arg1 (arithematic-eval (cadr expr))) ;car + cdr of a cons.
+        (arg2 (arithematic-eval (caddr expr)))) ;car + cdr + cdr of a cons.
+    (cond ((eq? operator-name 'plus)
+           (+ arg1 arg2))
+          ((eq? operator-name 'minus)
+           (- arg1 arg2))
+          ((eq? operator-name 'times)
+           (* arg1 arg2))
+          ((eq? operator-name 'divide)
+           (/ arg1 arg2))
+          (else
+            (error "Can't handle this operator.")))))
 
-(display "Hello world")
+(define (arithematic-eval expr)
+  (cond
+    ((number? expr)
+     expr)
+    (else
+      (math-eval-combo expr))))
+
 (newline)
-(display (expr 5))
+(REPL arithematic-eval)
 (newline)
-(REPL)
 (newline)
+;;(display "Hello world")
+(newline)
+;;(display (expr 5))
 (newline)
 (newline)
