@@ -54,6 +54,9 @@
 (define right-paren-token
   (list '*right-parenthesis*))
 
+(define semi-colon-token
+  (list '*semi-colon*))
+
 (define (ReadChar)
   (let ((currentChar (read-char))) ;intrinsic proc
     (cond ((char-whitespace? currentChar)
@@ -62,10 +65,12 @@
            left-paren-token)
            ((eq? currentChar #\) )
             right-paren-token)
+           ((eq? currentChar #\; )
+            semi-colon-token)
            ((char-alphabetic? currentChar)
             (read-word currentChar))
            ((char-numeric? currentChar)
-            (read-num currentChar))
+            (read-word currentChar))
            (else
              (error "Cannot handle this character token")))))
 
@@ -75,21 +80,21 @@
 (define (rightParen? ch)
   (eq? ch right-paren-token))
 
+(define (semiColon? ch)
+  (eq? ch semi-colon-token))
+
 (define (readList list-so-far)
   (let ((currToken (ReadChar)))
-    (cond ((rightParen? currToken)
+    (cond ((semiColon? currToken)
           (reverse list-so-far))
           ((leftParen? currToken)
-           (readList (cons (readList '()) list-so-far)))
+           (readList (cons (readList '()) list-so-far)));;When we cons one n sized list to another m sized list, (cons nList mList), the nList now becomes one single element, it's inners are not affected when we try doing map operations ourselves, or when we reverse the order.
           (else
             (readList (cons currToken list-so-far))))))
 
 (define (simpleRead)
   (let ((nextToken (ReadChar)))
-    (cond ((leftParen? nextToken)
-           (readList '()))
-          (else
-            nextToken))))
+           (readList '())))
 
 (define (REPL evaltr)
   (display "rEPL| ")
@@ -125,12 +130,86 @@
     (else
       (math-eval-combo expr))))
 
+(define (getString expr) ;;Since our reader takes in strings as symbols for easier comparison wrt strings.
+  (if (symbol? expr) (symbol->string expr) expr))
+
+
+(define (isRegister? expr)
+  (if (char-alphabetic? (string-ref expr 0))
+    (<= (string-length expr) 2)
+  #f))
+
+(define (isAddress? expr)
+  (let ((first-char (string-ref expr 0))
+        (last-char  (string-ref expr (- (string-length expr) 1))))
+    (or (char-numeric? first-char)
+        (char=? last-char #\H))))
+
+(define (isImmediate? op) ;;Since I am trying to make this work for my own emulator. I will only cater to the very specific subset of instructions.
+  (not (eq? op 'MOV)))
+
+(define (read8085)
+  (let ((currentChar (read-char)))
+    (cond ((eof-object? currentChar)
+           'eof)
+          ((char-whitespace? currentChar)
+           (read8085))
+          ((eq? currentChar #\;) ;;Need to add comma handling later.
+           'semi-colon-token)
+          ((char-alphabetic? currentChar)
+           (read-word currentChar))
+          ((char-numeric? currentChar)
+           (read-word currentChar))
+          (else
+           (error "Cannot handle this character token:" currentChar)))))
+
+(define (readInstruction instructions-so-far)
+  (let ((currToken (read8085)))
+    (cond ((eq? currToken 'eof)
+           (reverse instructions-so-far))
+          ((eq? currToken 'semi-colon-token)
+           (reverse instructions-so-far))
+          (else
+           (readInstruction (cons currToken instructions-so-far))))))
+
+(define (readAssembly)
+  (readInstruction '()))
+
+(define (ASM evaltr)
+  (display "aSM | ")
+  (let ((expr (readAssembly)))
+    (cond ((or (eq? (car expr) 'halt)
+               (eq? (car expr) 'exit))
+           (display "Exiting the aSM rEPL"))
+          (else
+           (write (evaltr expr))
+           (newline)
+           (ASM evaltr)))))
+
+(define (assembler-eval expr) ;Each expression right now is inside paranthesis.
+  (let ((operator-name (car expr)))
+    (cond ((isImmediate? operator-name)
+          (let ((arg (8085eval (cadr expr))))
+            (display "Immediate instruction done: ")
+            (display arg)))
+          (else
+            (let ((arg1 (8085eval (cadr expr)))
+                  (arg2 (8085eval (caddr expr))))
+                  (display "Non Immediate instruction done: ")
+                  (display arg1)
+                  (display ", ")
+                  (display arg2))))))
+
+(define (8085eval expr)
+  (cond
+    ((isRegister? (getString expr))
+     expr)
+    ((isAddress? (getString expr))
+     expr)))
+
+(display "type halt/exit with a semicolon to exit!")
 (newline)
-(REPL arithematic-eval)
-(newline)
+(ASM assembler-eval)
 (newline)
 ;;(display "Hello world")
-(newline)
 ;;(display (expr 5))
-(newline)
-(newline)
