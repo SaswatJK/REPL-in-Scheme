@@ -5,6 +5,26 @@
     num
   ("Not a number")))
 
+(define A 111)
+(define B 000)
+(define C 001)
+(define D 010)
+(define E 011)
+(define H 100)
+(define L 101)
+(define M 110)
+(define HL 110)
+
+(define ADD 10000000)
+(define SUB 10010000)
+(define MOV 01000000)
+(define MVI 10000000)
+(define LXI 00000110)
+(define STAX 00000010)
+(define LDA 00111010)
+(define SHLD 00100010)
+(define LHLD 00101010)
+
 (define-syntax swap
   (syntax-rules ()
     ((swap exprA exprB)
@@ -186,12 +206,14 @@
            (newline)
            (ASM evaltr)))))
 
-(define (assembler-eval expr) ;Each expression right now is inside paranthesis.
+(define (assembler-eval expr)
   (let ((operator-name (car expr)))
     (cond ((isImmediate? operator-name)
           (let ((arg (8085eval (cadr expr))))
             (display "Immediate instruction done: ")
+            (display (eval operator-name (interaction-environment)))
             (display arg)))
+
           (else
             (let ((arg1 (8085eval (cadr expr)))
                   (arg2 (8085eval (caddr expr))))
