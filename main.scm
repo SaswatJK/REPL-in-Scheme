@@ -151,7 +151,9 @@
       (math-eval-combo expr))))
 
 (define (getString expr) ;;Since our reader takes in strings as symbols for easier comparison wrt strings.
-  (if (symbol? expr) (symbol->string expr) expr))
+  (cond [(symbol? expr) (symbol->string expr)]
+        [(number? expr) (number->string expr)]
+        [else expr]))
 
 
 (define (isRegister? expr)
@@ -206,13 +208,38 @@
            (newline)
            (ASM evaltr)))))
 
+(define (addDest insCODE dest)
+  (+ insCODE (* dest 1000)))
+
+(define (addSource insCODE source)
+  (+ insCODE source))
+
+(define (getBINARY expr)
+(eval expr (interaction-environment)))
+
+(define (encodeOPCODE insCODE dest source)
+  (if (= source 0)
+    (addDest insCODE dest)
+    (if (= dest 0)
+      (addSource insCODE source)
+      (+ (addSource insCODE source) (addDest insCODE dest)))))
+
+(define (newOPCODE insCODE dest source)
+  (if (isRegister? (getString dest))
+    (if (isRegister? (getString source))
+      (encodeOPCODE insCODE (getBINARY dest) (getBINARY source))
+      (encodeOPCODE insCODE (getBINARY dest) 0))
+    (if (isRegister? (getString source))
+      (encodeOPCODE insCODE 0 (getBINARY source))
+      (encodeOPCODE insCODE 0 0))))
+
 (define (assembler-eval expr)
   (let ((operator-name (car expr)))
     (cond ((isImmediate? operator-name)
           (let ((arg (8085eval (cadr expr))))
             (display "Immediate instruction done: ")
-            (display (eval operator-name (interaction-environment)))
-            (display arg)))
+            ;(display (getBINARY operator-name))
+            (display (newOPCODE (getBINARY operator-name) 0 (cadr expr)))
 
           (else
             (let ((arg1 (8085eval (cadr expr)))
